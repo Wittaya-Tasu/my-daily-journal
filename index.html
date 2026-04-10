@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tasuya Daily Journal</title>
+    <title>Tasuya Daily Journal.v2</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root {
@@ -12,21 +12,12 @@
         }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; justify-content: center; }
         
-        /* พื้นที่หลักที่ต้องการแคปภาพ */
-        #capture-area { 
-            background: var(--white); 
-            width: 100%; 
-            max-width: 480px; 
-            padding: 25px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        }
+        #capture-area { background: var(--white); width: 100%; max-width: 480px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
 
         header { border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px; }
         header h2 { margin: 0; color: var(--primary); font-size: 1.4rem; }
         header p { margin: 5px 0 0; color: #888; font-size: 0.9rem; }
 
-        /* Mood & Water Section */
         .status-row { display: flex; gap: 15px; margin-bottom: 20px; }
         .status-card { flex: 1; }
         h3 { font-size: 0.85rem; color: #666; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px; }
@@ -39,11 +30,9 @@
         .water-btn { background: #f9f9f9; border: 1px solid #eee; border-radius: 6px; cursor: pointer; font-size: 1.1rem; padding: 5px 0; transition: 0.2s; }
         .water-btn.active { background: #e3f2fd; border-color: #2196f3; box-shadow: inset 0 0 5px rgba(33,150,243,0.2); }
 
-        /* Two Column Layout */
         .columns { display: flex; gap: 15px; margin-bottom: 15px; }
         .col { flex: 1; }
 
-        /* Todo List */
         .todo-container { background: #f8f9fa; padding: 12px; border-radius: 12px; min-height: 100px; }
         .todo-input-wrap { display: flex; gap: 5px; margin-bottom: 10px; }
         input[type="text"] { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 8px; font-size: 0.9rem; outline: none; }
@@ -51,8 +40,8 @@
         .todo-list-display { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .todo-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; background: white; padding: 5px; border-radius: 4px; border: 1px solid #eee; }
         .todo-item.done span { text-decoration: line-through; color: #bbb; }
+        .delete-todo { margin-left: auto; color: #e74c3c; cursor: pointer; font-weight: bold; font-size: 1rem; border: none; background: none; padding: 0 5px; }
 
-        /* Quick Tasks (Work/Personal) */
         .task-card { background: #f8f9fa; padding: 12px; border-radius: 12px; height: 100%; box-sizing: border-box; }
         .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
         .chip { background: white; border: 1px solid #ddd; padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
@@ -60,11 +49,9 @@
 
         textarea { width: 100%; border: 1px solid #ddd; border-radius: 12px; padding: 12px; font-size: 0.9rem; box-sizing: border-box; margin-top: 10px; outline: none; }
 
-        /* Buttons & Loading */
         .actions { margin-top: 25px; display: flex; flex-direction: column; gap: 10px; }
         .btn { padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; }
         .btn-save { background: #27ae60; color: white; }
-        .btn-save:hover { background: #219150; }
         .btn-img { background: #3498db; color: white; }
         #loading-overlay { display: none; text-align: center; color: #666; font-size: 0.9rem; padding: 10px; }
     </style>
@@ -123,7 +110,7 @@
     </div>
 
     <h3>Daily Note</h3>
-    <textarea id="daily-note" rows="3" placeholder="How was your day? (Short note)"></textarea>
+    <textarea id="daily-note" rows="3" placeholder="How was your day? (Short note)" oninput="saveLocalState()"></textarea>
 
     <div class="actions">
         <button class="btn btn-save" onclick="processEntry()">🚀 Save to Sheets & Drive</button>
@@ -133,7 +120,9 @@
 </div>
 
 <script>
-    // --- ตั้งค่า URL ของคุณที่นี่ ---
+    // -----------------------------------------------------
+    // 1. นำ URL เว็บแอปของคุณมาวางตรงนี้ให้เหมือนเดิมครับ
+    // -----------------------------------------------------
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykttagm0Ec-gPhLUSXvD_HDQp0ZMh83ZX0s1zDs-KFBp1TEHn551B2QnKdRKFmeK-6/exec';
     
     let currentMood = 3;
@@ -141,10 +130,26 @@
     const workTags = ['Farm Visit', 'Meeting', 'Lab Result', 'Slide', 'Drug Approve'];
     const personalTags = ['Exercise', 'Reading', 'Meditation', 'Family', 'Hobby'];
 
-    // Initial Setup
+    // ตั้งวันที่
     document.getElementById('display-date').innerText = "Journal: " + new Date().toLocaleDateString('th-TH');
     
-    // สร้าง Water Grid
+    // --- ฟังก์ชันบันทึกข้อมูลลงเครื่อง (Auto Save) ---
+    function saveLocalState() {
+        const state = {
+            mood: currentMood,
+            water: waterCount,
+            note: document.getElementById('daily-note').value,
+            todos: Array.from(document.querySelectorAll('.todo-item')).map(t => ({
+                text: t.querySelector('span').innerText,
+                done: t.querySelector('input[type="checkbox"]').checked
+            })),
+            work: Array.from(document.querySelectorAll('#work-tasks .chip.active')).map(c => c.innerText),
+            personal: Array.from(document.querySelectorAll('#personal-tasks .chip.active')).map(c => c.innerText)
+        };
+        localStorage.setItem('tasuyaJournalState', JSON.stringify(state));
+    }
+
+    // สร้าง UI แก้วน้ำ
     const wg = document.getElementById('water-grid');
     for(let i=1; i<=10; i++) {
         let btn = document.createElement('button');
@@ -152,6 +157,7 @@
         btn.onclick = () => {
             waterCount = i;
             document.querySelectorAll('.water-btn').forEach((b, idx) => b.classList.toggle('active', idx < i));
+            saveLocalState(); // เซฟทันทีที่กด
         };
         wg.appendChild(btn);
     }
@@ -162,7 +168,10 @@
         list.forEach(item => {
             let s = document.createElement('span');
             s.className = 'chip'; s.innerText = item;
-            s.onclick = () => s.classList.toggle('active');
+            s.onclick = () => { 
+                s.classList.toggle('active'); 
+                saveLocalState(); // เซฟทันทีที่กด
+            };
             container.appendChild(s);
         });
     }
@@ -172,39 +181,85 @@
     function setMood(val) {
         currentMood = val;
         document.querySelectorAll('.mood-btn').forEach((b, i) => b.classList.toggle('active', (i+1) === val));
+        saveLocalState(); // เซฟทันทีที่กด
     }
-    setMood(3); // Default
+
+    // สร้างฟังก์ชันเพิ่ม Todo (รองรับการดึงจาก LocalStorage ด้วย)
+    function createTodoElement(text, isDone) {
+        const div = document.createElement('div');
+        div.className = 'todo-item';
+        if(isDone) div.classList.add('done');
+        
+        div.innerHTML = `
+            <input type="checkbox" ${isDone ? 'checked' : ''} 
+                   onchange="this.parentElement.classList.toggle('done'); saveLocalState();"> 
+            <span>${text}</span>
+            <button class="delete-todo" onclick="this.parentElement.remove(); saveLocalState();">×</button>
+        `;
+        document.getElementById('todo-list').appendChild(div);
+    }
 
     function addTodo() {
         const inp = document.getElementById('todo-input');
         if(!inp.value) return;
-        const div = document.createElement('div');
-        div.className = 'todo-item';
-        div.innerHTML = `<input type="checkbox" onchange="this.parentElement.classList.toggle('done')"> <span>${inp.value}</span>`;
-        document.getElementById('todo-list').appendChild(div);
+        createTodoElement(inp.value, false);
         inp.value = '';
+        saveLocalState(); // เซฟทันทีที่กด
     }
 
+    // --- ฟังก์ชันดึงข้อมูลเมื่อเปิดแอป (Load State) ---
+    function loadLocalState() {
+        const saved = localStorage.getItem('tasuyaJournalState');
+        if (saved) {
+            const state = JSON.parse(saved);
+            
+            setMood(state.mood || 3);
+            
+            waterCount = state.water || 0;
+            document.querySelectorAll('.water-btn').forEach((b, idx) => b.classList.toggle('active', idx < waterCount));
+            
+            if(state.note) document.getElementById('daily-note').value = state.note;
+            
+            if(state.todos) {
+                state.todos.forEach(t => createTodoElement(t.text, t.done));
+            }
+            
+            if(state.work) {
+                document.querySelectorAll('#work-tasks .chip').forEach(c => {
+                    if(state.work.includes(c.innerText)) c.classList.add('active');
+                });
+            }
+            
+            if(state.personal) {
+                document.querySelectorAll('#personal-tasks .chip').forEach(c => {
+                    if(state.personal.includes(c.innerText)) c.classList.add('active');
+                });
+            }
+        } else {
+            setMood(3); // ค่า Default วันใหม่
+        }
+    }
+
+    // เรียกใช้ตอนเปิดหน้าเว็บ
+    loadLocalState();
+
+    // --- ฟังก์ชันส่งข้อมูล ---
     async function processEntry() {
         const loader = document.getElementById('loading-overlay');
         loader.style.display = 'block';
         
-        // 1. แคปภาพ (ตามสเปก)
         window.scrollTo(0,0);
         const canvas = await html2canvas(document.getElementById('capture-area'), {
             useCORS: true, scale: 2, backgroundColor: "#ffffff"
         });
         const base64Image = canvas.toDataURL("image/png");
 
-        // 2. รวบรวมข้อมูล
         const now = new Date();
         const timestamp = now.getFullYear() + 
             String(now.getMonth() + 1).padStart(2, '0') + 
             String(now.getDate()).padStart(2, '0') + "_" +
             String(now.getHours()).padStart(2, '0') + 
             String(now.getMinutes()).padStart(2, '0');
-        
-        const fileName = `Tasuya_Daily_Journal_${timestamp}`;
         
         const payload = {
             date: now.toLocaleDateString('th-TH'),
@@ -214,10 +269,9 @@
             quickTasks: `Work: ${Array.from(document.querySelectorAll('#work-tasks .active')).map(c => c.innerText).join(',')} | Personal: ${Array.from(document.querySelectorAll('#personal-tasks .active')).map(c => c.innerText).join(',')}`,
             note: document.getElementById('daily-note').value,
             image: base64Image,
-            fileName: fileName
+            fileName: `Tasuya_Daily_Journal_${timestamp}`
         };
 
-        // 3. ส่งข้อมูลไป Google Apps Script
         try {
             await fetch(APPS_SCRIPT_URL, {
                 method: 'POST',
@@ -225,7 +279,11 @@
                 body: JSON.stringify(payload)
             });
             alert('✅ บันทึกข้อมูลและรูปภาพเรียบร้อยแล้ว!');
-            location.reload(); // เคลียร์ฟอร์ม
+            
+            // ล้างข้อมูลในเครื่องหลังบันทึกเสร็จ เพื่อเริ่มวันใหม่
+            localStorage.removeItem('tasuyaJournalState'); 
+            location.reload(); 
+            
         } catch (e) {
             alert('❌ เกิดข้อผิดพลาด: ' + e);
         } finally {
